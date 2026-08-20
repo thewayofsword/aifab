@@ -1,0 +1,17 @@
+# 数据（数据库含真实工坊内容，绝不提交）
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 备份
+backups/
+
+# macOS
+.DS_Store

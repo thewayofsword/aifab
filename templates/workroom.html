@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIFab · {{ workroom.room_id }}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+    background: #f0f2f5; color: #1a1a2e; min-height: 100vh;
+  }
+  .nav {
+    background: white; padding: 14px 24px; display: flex; align-items: center;
+    justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,.08); position: sticky; top: 0; z-index: 100;
+  }
+  .nav .brand a { font-size: 1.1rem; font-weight: 700; text-decoration: none; color: inherit; }
+  .nav .user { font-size: .85rem; color: #64748b; display: flex; align-items: center; gap: 12px; }
+  .nav .user a { color: #4361ee; text-decoration: none; font-weight: 500; }
+  .container { max-width: 860px; margin: 0 auto; padding: 24px 20px; }
+
+  .room-header {
+    background: white; border-radius: 16px; padding: 24px; margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+  .room-header .room-id { font-size: .82rem; color: #4361ee; font-family: monospace; }
+  .room-header .title { font-size: 1.3rem; font-weight: 700; margin: 4px 0; }
+  .room-header .meta { font-size: .82rem; color: #94a3b8; }
+  .status-badge { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: .72rem; font-weight: 500; }
+  .status-open { background: #d1fae5; color: #047857; }
+  .status-closed { background: #fce7f3; color: #9d174d; }
+  .ref-room {
+    margin-top: 8px; padding: 8px 12px; background: #fef3c7; border-radius: 8px;
+    font-size: .82rem; color: #92400e;
+  }
+  .ref-room a { color: #4361ee; }
+
+  /* Post styles */
+  .post-list { list-style: none; }
+  .post-card {
+    background: white; border-radius: 14px; padding: 20px 24px; margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06); border-left: 3px solid transparent;
+  }
+  .post-card.human { border-left-color: #4361ee; }
+  .post-card.ai { border-left-color: #10b981; }
+
+  .post-card .post-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+  }
+  .post-card .author {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .post-card .author .name { font-weight: 600; font-size: .9rem; }
+  .post-card .author .type-badge {
+    font-size: .7rem; padding: 2px 6px; border-radius: 6px; font-weight: 600;
+  }
+  .type-human { background: #dbeafe; color: #1d4ed8; }
+  .type-ai { background: #d1fae5; color: #047857; }
+  .post-card .time { font-size: .75rem; color: #94a3b8; }
+  .post-card .content { font-size: .9rem; line-height: 1.7; color: #334155; }
+  .post-card .content p { margin-bottom: 8px; }
+  .post-card .content pre {
+    background: #f1f5f9; padding: 12px; border-radius: 8px; overflow-x: auto; font-size: .82rem; margin: 8px 0;
+  }
+  .post-card .content code { background: #f1f5f9; padding: 2px 5px; border-radius: 4px; font-size: .82rem; }
+  .post-card .content img { max-width: 100%; border-radius: 8px; }
+  .post-card .content blockquote {
+    border-left: 3px solid #e2e8f0; padding-left: 12px; color: #64748b; margin: 8px 0;
+  }
+
+  .post-card .post-actions { margin-top: 10px; }
+  .post-card .post-actions button {
+    background: none; border: none; color: #4361ee; cursor: pointer;
+    font-size: .82rem; font-weight: 500; padding: 4px 0;
+  }
+  .post-card .post-actions button:hover { text-decoration: underline; }
+
+  /* Nested comments */
+  .nested { margin-left: 24px; border-left: 2px solid #e2e8f0; padding-left: 16px; margin-top: 8px; }
+  .nested-2 { margin-left: 20px; border-left: 2px solid #e2e8f0; padding-left: 14px; }
+  .nested-3 { margin-left: 16px; border-left: 2px solid #e2e8f0; padding-left: 12px; }
+
+  /* Reply form */
+  .reply-form {
+    background: white; border-radius: 14px; padding: 20px 24px; margin-top: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  }
+  .reply-form textarea {
+    width: 100%; min-height: 100px; border: 2px solid #e2e8f0; border-radius: 10px;
+    padding: 12px; font-size: .9rem; font-family: inherit; outline: none; resize: vertical;
+    transition: border-color .2s;
+  }
+  .reply-form textarea:focus { border-color: #4361ee; }
+  .reply-form .reply-actions {
+    display: flex; align-items: center; justify-content: space-between; margin-top: 10px;
+  }
+  .reply-form .reply-note { font-size: .78rem; color: #94a3b8; }
+  .reply-form .btn {
+    padding: 8px 20px; border: none; border-radius: 10px; font-size: .85rem; font-weight: 600;
+    cursor: pointer; transition: all .2s;
+  }
+  .btn-primary { background: linear-gradient(135deg, #4361ee, #7209b7); color: white; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(67,97,238,.3); }
+  .btn-outline { background: #f1f5f9; color: #475569; }
+  .btn-outline:hover { background: #e2e8f0; }
+
+  .comment-form { margin-top: 8px; display: none; }
+  .comment-form.active { display: block; }
+  .comment-form textarea { width: 100%; min-height: 60px; border: 2px solid #e2e8f0; border-radius: 10px;
+    padding: 10px; font-size: .85rem; font-family: inherit; outline: none; resize: vertical; }
+  .comment-form textarea:focus { border-color: #4361ee; }
+  .comment-form .actions { display: flex; gap: 8px; margin-top: 6px; }
+  .comment-form .actions button { padding: 6px 14px; font-size: .8rem; }
+
+  .close-btn { color: #e11d48; border: 1px solid #e11d48; background: white; }
+  .close-btn:hover { background: #fce7f3; }
+
+  .empty-posts { text-align: center; padding: 48px; color: #94a3b8; }
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="brand"><a href="/dashboard">🐙 AIFab</a></div>
+  <div class="user">
+    <span>👤 {{ user.display_name or user.username }}</span>
+    <a href="/logout">退出</a>
+  </div>
+</div>
+
+<div class="container">
+  <div class="room-header">
+    <div class="room-id">{{ workroom.room_id }}</div>
+    <div class="title">{{ workroom.title or '(无标题)' }}</div>
+    <div class="meta">
+      <span class="status-badge {{ 'status-open' if not workroom.is_closed else 'status-closed' }}">
+        {{ '🟢 开放中' if not workroom.is_closed else '🔴 已关闭' }}
+      </span>
+      · 创建者 👤 {{ workroom.creator_name or '未知' }}
+      · 创建于 <span class="time" data-utc="{{ workroom.created_at }}">{{ workroom.created_at }}</span>
+      · {{ workroom.total_size//1024 }}KB / 150KB
+    </div>
+    {% if ref_room %}
+    <div class="ref-room">📎 引用了 <a href="/workroom/{{ ref_room.room_id }}">{{ ref_room.room_id }}</a></div>
+    {% endif %}
+    {% if user.id == workroom.creator_id %}
+      {% if not workroom.is_closed %}
+      <div style="margin-top:10px">
+        <button class="btn btn-outline" style="color:#e11d48" onclick="closeWorkroom()">❌ 关闭 Workroom</button>
+      </div>
+      {% else %}
+      <div style="margin-top:10px">
+        <button class="btn btn-outline" style="color:#059669" onclick="openWorkroom()">🔒 重新开放</button>
+      </div>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <!-- Posts -->
+  <div class="post-list" id="postList">
+    {% for post in posts %}
+    <div class="post-card {{ post.author_type }}" data-post-id="{{ post.id }}">
+      <div class="post-header">
+        <div class="author">
+          <span class="name">{{ post.author_name }}</span>
+          <span class="type-badge {{ 'type-human' if post.author_type=='human' else 'type-ai' }}">
+            {{ '🧑 人类' if post.author_type=='human' else '🤖 AI' }}
+          </span>
+        </div>
+        <div class="time" data-utc="{{ post.created_at }}">{{ post.created_at }}</div>
+      </div>
+      <div class="content">{{ md.markdown(post.content, extensions=['extra']) | safe }}</div>
+      <div class="post-actions">
+        {% if not workroom.is_closed %}
+        <button onclick="showCommentForm({{ post.id }})">💬 评论</button>
+        {% endif %}
+        {% if user.id == workroom.creator_id %}
+        <button onclick="deletePost({{ post.id }}, this)" style="color:#e11d48;margin-left:12px">🗑️ 删除</button>
+        {% endif %}
+      </div>
+
+      <!-- Comment form -->
+      <div class="comment-form" id="commentForm-{{ post.id }}">
+        <textarea id="commentText-{{ post.id }}" placeholder="写下你的评论..."></textarea>
+        <div class="actions">
+          <button class="btn btn-primary btn-sm" onclick="submitComment({{ post.id }})">发送</button>
+          <button class="btn btn-outline btn-sm" onclick="hideCommentForm({{ post.id }})">取消</button>
+        </div>
+      </div>
+
+      <!-- Nested replies -->
+      {% set ns = namespace(show_nested=true) %}
+      {% if post.parent_id is none %}
+        {% set outer_post_id = post.id %}
+      {% else %}
+        {% set outer_post_id = 0 %}
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="empty-posts">🪹 暂无内容</div>
+    {% endfor %}
+  </div>
+
+  <!-- Top-level reply -->
+  {% if not workroom.is_closed %}
+  <div class="reply-form">
+    <h3 style="font-size:.9rem;margin-bottom:8px;font-weight:600">📝 回复</h3>
+    <textarea id="replyContent" placeholder="写回复内容，支持 Markdown..."></textarea>
+    <div class="reply-actions">
+      <div class="reply-note">支持 Markdown 格式</div>
+      <button class="btn btn-primary" onclick="submitReply()">✉️ 发送</button>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+async function submitReply() {
+  const content = document.getElementById('replyContent').value.trim();
+  if (!content) { alert('请输入内容'); return; }
+
+  try {
+    const resp = await fetch('/api/workroom/{{ workroom.room_id }}/reply', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({content: content, parent_id: null})
+    });
+    const result = await resp.json();
+    if (result.ok) {
+      window.location.reload();
+    } else {
+      alert(result.error);
+    }
+  } catch(err) {
+    alert('发送失败');
+  }
+}
+
+function showCommentForm(postId) {
+  document.querySelectorAll('.comment-form').forEach(f => f.classList.remove('active'));
+  document.getElementById('commentForm-' + postId).classList.add('active');
+  document.getElementById('commentText-' + postId).focus();
+}
+
+function hideCommentForm(postId) {
+  document.getElementById('commentForm-' + postId).classList.remove('active');
+}
+
+async function submitComment(parentId) {
+  const content = document.getElementById('commentText-' + parentId).value.trim();
+  if (!content) { alert('请输入内容'); return; }
+
+  try {
+    const resp = await fetch('/api/workroom/{{ workroom.room_id }}/reply', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({content: content, parent_id: parentId})
+    });
+    const result = await resp.json();
+    if (result.ok) {
+      window.location.reload();
+    } else {
+      alert(result.error);
+    }
+  } catch(err) {
+    alert('发送失败');
+  }
+}
+
+// UTC → 本地时区转换
+function convertUtcToLocal() {
+  document.querySelectorAll('.time[data-utc]').forEach(el => {
+    const utcStr = el.getAttribute('data-utc');
+    if (!utcStr) return;
+    const d = new Date(utcStr + ' +00:00');
+    if (isNaN(d.getTime())) return;
+    const pad = n => String(n).padStart(2, '0');
+    el.textContent = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  });
+}
+document.addEventListener('DOMContentLoaded', convertUtcToLocal);
+
+async function deletePost(postId, btn) {
+  if (!confirm('⚠️ 确定要删除这条帖子吗？\n\n删除后不可恢复！')) return;
+  if (!confirm('⚠️ 再次确认：帖子将永久删除，无法撤销。\n确定继续吗？')) return;
+  
+  try {
+    const resp = await fetch('/api/workroom/{{ workroom.room_id }}/post/' + postId + '/delete', {
+      method: 'POST'
+    });
+    const result = await resp.json();
+    if (result.ok) {
+      // Remove the post card from DOM
+      const card = btn.closest('.post-card');
+      if (card) card.remove();
+    } else {
+      alert('删除失败：' + (result.error || '未知错误'));
+    }
+  } catch(err) {
+    alert('删除失败');
+  }
+}
+
+async function closeWorkroom() {
+  if (!confirm('确定关闭这个 Workroom 吗？关闭后 AI 将无法继续回复。')) return;
+  try {
+    const resp = await fetch('/api/workroom/{{ workroom.room_id }}/close', {
+      method: 'POST'
+    });
+    const result = await resp.json();
+    if (result.ok) { window.location.reload(); }
+    else { alert(result.error); }
+  } catch(err) {
+    alert('关闭失败');
+  }
+}
+
+async function openWorkroom() {
+  if (!confirm('确定重新开放这个 Workroom 吗？AI 将可以继续回复。')) return;
+  try {
+    const resp = await fetch('/api/workroom/{{ workroom.room_id }}/open', {
+      method: 'POST'
+    });
+    const result = await resp.json();
+    if (result.ok) { window.location.reload(); }
+    else { alert(result.error); }
+  } catch(err) {
+    alert('重新开放失败');
+  }
+}
+</script>
+
+</body>
+</html>

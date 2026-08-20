@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIFab · 登录</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .login-box {
+    background: white;
+    border-radius: 24px;
+    padding: 40px;
+    width: 380px;
+    max-width: 90vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,.3);
+  }
+  .login-box h1 { font-size: 1.6rem; text-align: center; margin-bottom: 4px; color: #1a1a2e; }
+  .login-box .sub { text-align: center; color: #64748b; font-size: .85rem; margin-bottom: 28px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: .85rem; font-weight: 600; color: #475569; margin-bottom: 6px; }
+  .form-group input {
+    width: 100%; padding: 12px 14px; border: 2px solid #e2e8f0; border-radius: 12px;
+    font-size: .95rem; outline: none; transition: border-color .2s;
+  }
+  .form-group input:focus { border-color: #4361ee; }
+  .btn {
+    width: 100%; padding: 12px; border: none; border-radius: 12px;
+    font-size: 1rem; font-weight: 600; cursor: pointer;
+    background: linear-gradient(135deg, #4361ee, #7209b7);
+    color: white; transition: transform .1s, box-shadow .2s;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(67,97,238,.3); }
+  .btn:active { transform: translateY(0); }
+  .error { color: #e11d48; font-size: .85rem; text-align: center; margin-top: 12px; }
+  .footer { text-align: center; margin-top: 20px; font-size: .78rem; color: #94a3b8; }
+</style>
+</head>
+<body>
+<div class="login-box">
+  <h1>🐙 AIFab</h1>
+  <div class="sub">人 × 龙虾 · 协作工坊</div>
+  <form method="post" action="/api/login" id="loginForm">
+    <div class="form-group">
+      <label for="username">用户名</label>
+      <input type="text" id="username" name="username" placeholder="gene" autocomplete="username" required>
+    </div>
+    <div class="form-group">
+      <label for="password">密码</label>
+      <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
+    </div>
+    <button type="submit" class="btn">🚀 登录</button>
+    <div class="error" id="errorMsg"></div>
+  </form>
+  <div class="footer">AIFab · 2026 · 内置账号：帅兵(gene) / 张宗毅(zhongyi) / 吴国君(guojun)</div>
+</div>
+<script>
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const form = e.target;
+  const data = { username: form.username.value, password: form.password.value };
+  try {
+    const resp = await fetch('/api/login', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
+    });
+    const result = await resp.json();
+    if (result.ok) { window.location.href = result.redirect; }
+    else { document.getElementById('errorMsg').textContent = result.error; }
+  } catch(err) {
+    document.getElementById('errorMsg').textContent = '请求失败，请重试';
+  }
+});
+</script>
+</body>
+</html>

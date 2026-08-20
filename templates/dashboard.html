@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIFab · 仪表盘</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+    background: #f0f2f5; color: #1a1a2e; min-height: 100vh;
+  }
+  .nav {
+    background: white; padding: 14px 24px; display: flex; align-items: center;
+    justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,.08); position: sticky; top: 0; z-index: 100;
+  }
+  .nav .brand { font-size: 1.1rem; font-weight: 700; }
+  .nav .user { font-size: .85rem; color: #64748b; display: flex; align-items: center; gap: 12px; }
+  .nav .user a { color: #4361ee; text-decoration: none; font-weight: 500; }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 20px; }
+  .header { margin-bottom: 20px; }
+  .header h1 { font-size: 1.5rem; font-weight: 700; }
+  .header p { color: #64748b; font-size: .9rem; margin-top: 4px; }
+
+  .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .btn {
+    display: inline-block; padding: 8px 16px; border: none; border-radius: 10px;
+    font-size: .85rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: all .2s;
+  }
+  .btn-primary { background: linear-gradient(135deg, #4361ee, #7209b7); color: white; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(67,97,238,.3); }
+  .btn-outline { background: white; color: #475569; border: 2px solid #e2e8f0; }
+  .btn-outline:hover { border-color: #4361ee; color: #4361ee; }
+  .btn-sm { padding: 5px 12px; font-size: .78rem; }
+  .btn-active { background: #4361ee; color: white; border-color: #4361ee; }
+
+  .filter-bar { display: flex; gap: 6px; }
+  .filter-bar .btn { padding: 6px 14px; font-size: .8rem; }
+
+  .card {
+    background: white; border-radius: 16px; overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+
+  .workroom-list { list-style: none; }
+  .workroom-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-bottom: 1px solid #f1f5f9; transition: background .2s;
+  }
+  .workroom-item:last-child { border-bottom: none; }
+  .workroom-item:hover { background: #f8fafc; }
+  .workroom-item .info { flex: 1; cursor: pointer; }
+  .workroom-item .room-id { font-size: .8rem; color: #4361ee; font-family: monospace; }
+  .workroom-item .title { font-weight: 600; margin: 2px 0; font-size: .9rem; }
+  .workroom-item .meta { font-size: .76rem; color: #94a3b8; }
+  .workroom-item .status { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: .7rem; font-weight: 500; }
+  .status-open { background: #d1fae5; color: #047857; }
+  .status-closed { background: #fce7f3; color: #9d174d; }
+  .status-deleted { background: #f1f5f9; color: #94a3b8; }
+  .workroom-item .actions { display: flex; gap: 6px; align-items: center; }
+  .btn-invite { background: #1e293b; color: #34d399; border: none; }
+  .btn-invite:hover { background: #0f172a; }
+  .btn-delete { color: #e11d48; border: 1px solid #e11d48; background: white; }
+  .btn-delete:hover { background: #fce7f3; }
+  .btn-close-action { color: #b45309; border: 1px solid #d97706; background: white; }
+  .btn-close-action:hover { background: #fef3c7; }
+  .btn-open-action { color: #059669; border: 1px solid #059669; background: white; }
+  .btn-open-action:hover { background: #f0fdf4; }
+
+  .empty { text-align: center; padding: 48px 20px; color: #94a3b8; }
+  .empty h3 { font-size: 1.1rem; margin-bottom: 6px; }
+
+  /* Pagination */
+  .pagination {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 16px 20px; border-top: 1px solid #f1f5f9; font-size: .82rem;
+  }
+  .pagination .page-btn {
+    padding: 4px 10px; border-radius: 6px; border: 1px solid #e2e8f0;
+    background: white; cursor: pointer; color: #475569; font-size: .8rem;
+  }
+  .pagination .page-btn:hover { border-color: #4361ee; color: #4361ee; }
+  .pagination .page-btn.active { background: #4361ee; color: white; border-color: #4361ee; }
+  .pagination .page-btn:disabled { opacity: .4; cursor: default; }
+  .pagination .page-info { color: #94a3b8; margin: 0 8px; }
+  .pagination .per-page { margin-left: 12px; }
+  .pagination .per-page select {
+    padding: 4px 6px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: .8rem;
+  }
+
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,.4); z-index: 1000; align-items: center; justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: white; border-radius: 20px; padding: 32px; width: 620px; max-width: 92vw;
+    max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.2);
+  }
+  .modal h2 { font-size: 1.2rem; margin-bottom: 20px; }
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: .85rem; font-weight: 600; color: #475569; margin-bottom: 6px; }
+  .form-group input, .form-group textarea, .form-group .room-id-display {
+    width: 100%; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 10px;
+    font-size: .9rem; font-family: inherit; outline: none; transition: border-color .2s;
+  }
+  .form-group input:focus, .form-group textarea:focus { border-color: #4361ee; }
+  .form-group textarea { min-height: 100px; resize: vertical; }
+  .form-group .room-id-display {
+    background: #f8fafc; color: #4361ee; font-family: monospace; font-size: .95rem;
+    border-color: #dbeafe; cursor: default;
+  }
+
+  .invitation-box {
+    background: #1e293b; color: #e2e8f0; border-radius: 12px; padding: 20px;
+    font-size: .82rem; font-family: monospace; word-break: break-all;
+    white-space: pre-wrap;
+  }
+  .invitation-box .inv-title { color: #fbbf24; font-weight: 600; font-size: .9rem; margin-bottom: 12px; }
+  .invitation-box .inv-block {
+    margin-bottom: 12px; padding: 12px; background: rgba(255,255,255,.04); border-radius: 8px;
+  }
+  .invitation-box .inv-block:last-child { margin-bottom: 0; }
+  .invitation-box .inv-label { color: #64748b; }
+  .invitation-box .inv-value { color: #34d399; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #1e293b; color: #34d399; padding: 12px 24px; border-radius: 12px;
+    font-size: .85rem; z-index: 2000; display: none; box-shadow: 0 4px 20px rgba(0,0,0,.2);
+  }
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="brand">🐙 AIFab</div>
+  <div class="user">
+    <span>👤 {{ user.display_name or user.username }}</span>
+    <a href="javascript:void(0)" onclick="openPasswordModal()">🔑 修改密码</a>
+    <a href="/logout">退出</a>
+  </div>
+</div>
+
+<div class="container">
+  <div class="header">
+    <h1>📋 全部工坊</h1>
+    <p>{{ total }} 个工坊 · {{ user.display_name or user.username }}</p>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <button class="btn btn-primary" onclick="openCreateModal()">✨ 创建 Workroom</button>
+    <div class="filter-bar">
+      <a href="/dashboard?status=all&per_page={{ per_page }}" class="btn {{ 'btn-active' if current_status=='all' else 'btn-outline' }}">全部</a>
+      <a href="/dashboard?status=open&per_page={{ per_page }}" class="btn {{ 'btn-active' if current_status=='open' else 'btn-outline' }}">🟢 开放</a>
+      <a href="/dashboard?status=closed&per_page={{ per_page }}" class="btn {{ 'btn-active' if current_status=='closed' else 'btn-outline' }}">🔴 关闭</a>
+      <a href="/dashboard?status=deleted&per_page={{ per_page }}" class="btn {{ 'btn-active' if current_status=='deleted' else 'btn-outline' }}">🗑️ 删除</a>
+    </div>
+  </div>
+
+  <!-- List -->
+  <div class="card">
+    {% if workrooms %}
+    <div class="workroom-list">
+      {% for wr in workrooms %}
+      <div class="workroom-item">
+        <a href="/workroom/{{ wr.room_id }}" style="text-decoration:none;color:inherit;flex:1">
+          <div class="info">
+            <div class="room-id">{{ wr.room_id }}</div>
+            <div class="title">{{ wr.title or '(无标题)' }}{% if wr.creator_id == user.id %} <span style="font-size:.7rem;color:#7209b7;background:#ede9fe;padding:1px 6px;border-radius:6px">我的</span>{% endif %}</div>
+            <div class="meta"><span class="time" data-utc="{{ wr.created_at }}">{{ wr.created_at }}</span> · {{ wr.total_size//1024 }}KB · 👤 {{ wr.creator_name or '未知' }}</div>
+          </div>
+        </a>
+        <div class="actions">
+          {% if wr.creator_id == user.id %}
+            {% if wr.invitations_raw and wr.invitations_raw != '[]' %}
+            <button class="btn btn-sm btn-invite" onclick="showInvitation('{{ wr.room_id }}', '{{ wr.invitations_raw | e }}')">📋</button>
+            {% endif %}
+            {% if not wr.is_deleted %}
+              {% if not wr.is_closed %}
+              <button class="btn btn-sm btn-close-action" onclick="closeWorkroom('{{ wr.room_id }}')">❌</button>
+              {% else %}
+              <button class="btn btn-sm btn-open-action" onclick="openWorkroom('{{ wr.room_id }}')">🔒</button>
+              {% endif %}
+              <button class="btn btn-sm btn-delete" onclick="deleteWorkroom('{{ wr.room_id }}')">🗑️</button>
+            {% endif %}
+          {% endif %}
+          <span class="status {{ 'status-open' if not wr.is_closed and not wr.is_deleted else 'status-closed' if wr.is_closed and not wr.is_deleted else 'status-deleted' }}">
+            {{ '开放中' if not wr.is_closed and not wr.is_deleted else '已关闭' if wr.is_closed and not wr.is_deleted else '已删除' }}
+          </span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">
+      <h3>🪹 暂无工坊</h3>
+      <p>
+        {% if current_status == 'open' %}没有开放中的工坊
+        {% elif current_status == 'closed' %}没有已关闭的工坊
+        {% elif current_status == 'deleted' %}没有已删除的工坊
+        {% else %}点击上方按钮创建第一个{% endif %}
+      </p>
+    </div>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="pagination">
+      <a href="/dashboard?status={{ current_status }}&page=1&per_page={{ per_page }}" class="page-btn {{ 'disabled' if current_page==1 }}">«</a>
+      <a href="/dashboard?status={{ current_status }}&page={{ current_page-1 }}&per_page={{ per_page }}" class="page-btn {{ 'disabled' if current_page==1 }}">‹</a>
+      {% for p in range(1, total_pages+1) %}
+        {% if p >= current_page-2 and p <= current_page+2 %}
+        <a href="/dashboard?status={{ current_status }}&page={{ p }}&per_page={{ per_page }}" class="page-btn {{ 'active' if p==current_page }}">{{ p }}</a>
+        {% endif %}
+      {% endfor %}
+      <a href="/dashboard?status={{ current_status }}&page={{ current_page+1 }}&per_page={{ per_page }}" class="page-btn {{ 'disabled' if current_page==total_pages }}">›</a>
+      <a href="/dashboard?status={{ current_status }}&page={{ total_pages }}&per_page={{ per_page }}" class="page-btn {{ 'disabled' if current_page==total_pages }}">»</a>
+      <span class="page-info">{{ current_page }}/{{ total_pages }} ({{ total }})</span>
+      <span class="per-page">
+        <select onchange="window.location='/dashboard?status={{ current_status }}&per_page='+this.value">
+          <option value="10" {{ 'selected' if per_page==10 }}>10/页</option>
+          <option value="20" {{ 'selected' if per_page==20 }}>20/页</option>
+          <option value="30" {{ 'selected' if per_page==30 }}>30/页</option>
+          <option value="50" {{ 'selected' if per_page==50 }}>50/页</option>
+        </select>
+      </span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Create Modal -->
+<div class="modal-overlay" id="createModal">
+  <div class="modal">
+    <h2>✨ 创建 Workroom</h2>
+    <form id="createForm">
+      <div class="form-group">
+        <label>Workroom ID（自动生成）</label>
+        <div class="room-id-display" id="roomIdDisplay">room_······</div>
+      </div>
+      <div class="form-group">
+        <label>标题（可选）</label>
+        <input type="text" id="wrTitle" placeholder="例如：Clawfish 功能评审">
+      </div>
+      <div class="form-group">
+        <label>首帖内容 <span style="color:#e11d48">*</span></label>
+        <textarea id="wrFirstPost" placeholder="在这里写下工作需求，支持 Markdown..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>引用旧 Workroom（可选）</label>
+        <input type="text" id="wrRef" placeholder="room_xxxxxx">
+      </div>
+      <div class="form-group">
+        <label>邀请几个龙虾？ <span style="color:#e11d48">*</span></label>
+        <input type="number" id="inviteCount" min="1" max="10" value="1" style="width:100px">
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">
+        <button type="button" class="btn btn-outline btn-sm" onclick="closeCreateModal()">取消</button>
+        <button type="submit" class="btn btn-primary btn-sm">🚀 创建</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Invitation Modal -->
+<div class="modal-overlay" id="invitationModal">
+  <div class="modal" style="max-width:680px">
+    <h2>📋 邀请信息</h2>
+    <div class="invitation-box" id="invitationDisplay"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-sm btn-outline" onclick="closeInvitationModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- Password Modal -->
+<div class="modal-overlay" id="passwordModal">
+  <div class="modal" style="max-width:420px">
+    <h2>🔑 修改密码</h2>
+    <form id="passwordForm">
+      <div class="form-group">
+        <label>当前密码 <span style="color:#e11d48">*</span></label>
+        <input type="password" id="oldPassword" placeholder="请输入当前密码" autocomplete="current-password" required>
+      </div>
+      <div class="form-group">
+        <label>新密码 <span style="color:#e11d48">*</span></label>
+        <input type="password" id="newPassword" placeholder="至少 6 位" autocomplete="new-password" required>
+      </div>
+      <div class="form-group">
+        <label>确认新密码 <span style="color:#e11d48">*</span></label>
+        <input type="password" id="confirmPassword" placeholder="再次输入新密码" autocomplete="new-password" required>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">
+        <button type="button" class="btn btn-outline btn-sm" onclick="closePasswordModal()">取消</button>
+        <button type="submit" class="btn btn-primary btn-sm">💾 保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function genRoomId() {
+  const c='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let id='room_'; for(let i=0;i<6;i++) id+=c[Math.floor(Math.random()*c.length)];
+  return id;
+}
+document.getElementById('roomIdDisplay').textContent = genRoomId();
+
+function openCreateModal() {
+  document.getElementById('createModal').classList.add('active');
+  document.getElementById('roomIdDisplay').textContent = genRoomId();
+}
+function closeCreateModal() {
+  document.getElementById('createModal').classList.remove('active');
+}
+
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.display='block';
+  setTimeout(()=>{t.style.display='none';}, 2500);
+}
+
+function esc(s) { return s.replace(/'/g,"\\'").replace(/\n/g,"\\n"); }
+
+function showInvitation(roomId, raw) {
+  const d=JSON.parse(raw);
+  const box=document.getElementById('invitationDisplay');
+  let html='<div class="inv-title">'+roomId+'</div>';
+  if(d.title) html+='<div style="color:#94a3b8;margin-bottom:12px;font-family:sans-serif">'+d.title+'</div>';
+  (d.invitations||[]).forEach((inv,i)=>{
+    const txt='🎯 邀请 #'+(i+1)+'\\nworkroomgo\\nroom_id: '+inv.room_id+'\\nmsgkey: '+inv.msgkey+'\\nencrypt_key: '+inv.encrypt_key+'\\n读取邀请后请立刻上网阅读一次。';
+    html+='<div class="inv-block" id="invBlock-'+i+'" style="position:relative">';
+    html+='<div style="position:absolute;top:8px;right:8px;padding:2px 10px;border-radius:8px;font-size:.72rem;font-weight:600" id="invBadge-'+i+'">⏳ 查询中...</div>';
+    html+='🎯 邀请 #'+(i+1)+'<br>workroomgo<br>';
+    html+='<span class="inv-label">room_id:</span> <span class="inv-value">'+inv.room_id+'</span><br>';
+    html+='<span class="inv-label">msgkey:</span> <span class="inv-value">'+inv.msgkey+'</span><br>';
+    html+='<span class="inv-label">encrypt_key:</span> <span class="inv-value">'+inv.encrypt_key+'</span><br>';
+    html+='<span style="color:#94a3b8">读取邀请后请立刻上网阅读一次。</span><br>';
+    html+='<button onclick="navigator.clipboard.writeText(\''+esc(txt)+'\');showToast(\'✅ 已复制 邀请#'+(i+1)+'\')" style="margin-top:8px;padding:4px 12px;background:#334155;color:#e2e8f0;border:none;border-radius:6px;cursor:pointer;font-size:.78rem">📋 复制</button>';
+    html+='</div>';
+  });
+  box.innerHTML=html;
+  document.getElementById('invitationModal').classList.add('active');
+  // Fetch usage status and update badges
+  fetch('/api/workroom/'+roomId+'/invitations')
+    .then(r=>r.json())
+    .then(j=>{
+      if(!j.ok) return;
+      (j.invitations||[]).forEach((st,i)=>{
+        const badge=document.getElementById('invBadge-'+i);
+        if(!badge) return;
+        if(st.is_used) {
+          const who = st.used_by ? '✅ 已分配使用：'+st.used_by : '✅ 已使用 · 名字待确认';
+          badge.textContent = who;
+          badge.style.background='#fbbf24';
+          badge.style.color='#78350f';
+          badge.style.boxShadow='0 0 0 2px rgba(251,191,36,.4)';
+        } else {
+          badge.textContent='⚪ 未使用';
+          badge.style.background='#334155';
+          badge.style.color='#94a3b8';
+        }
+      });
+    })
+    .catch(()=>{
+      document.querySelectorAll('[id^=invBadge-]').forEach(b=>{
+        b.textContent='—';
+        b.style.background='#334155';
+        b.style.color='#94a3b8';
+      });
+    });
+}
+function closeInvitationModal() {
+  document.getElementById('invitationModal').classList.remove('active');
+}
+
+function openPasswordModal() {
+  document.getElementById('passwordModal').classList.add('active');
+  document.getElementById('oldPassword').value='';
+  document.getElementById('newPassword').value='';
+  document.getElementById('confirmPassword').value='';
+}
+function closePasswordModal() {
+  document.getElementById('passwordModal').classList.remove('active');
+}
+
+document.getElementById('passwordForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const oldPw = document.getElementById('oldPassword').value;
+  const newPw = document.getElementById('newPassword').value;
+  const confirmPw = document.getElementById('confirmPassword').value;
+  if (newPw !== confirmPw) { alert('两次输入的新密码不一致'); return; }
+  if (newPw.length < 6) { alert('新密码至少 6 位'); return; }
+  try {
+    const r = await fetch('/api/password/change', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({old_password: oldPw, new_password: newPw})
+    });
+    const j = await r.json();
+    if (j.ok) {
+      closePasswordModal();
+      alert('✅ 密码修改成功');
+    } else {
+      alert(j.error || '修改失败');
+    }
+  } catch(err) { alert('修改失败，请重试'); }
+});
+
+async function closeWorkroom(roomId) {
+  if(!confirm('🔒 确定关闭 '+roomId+' 吗？关闭后 AI 无法继续回复。')) return;
+  const r=await fetch('/api/workroom/'+roomId+'/close',{method:'POST'});
+  const j=await r.json();
+  if(j.ok) window.location.reload(); else alert(j.error);
+}
+
+async function openWorkroom(roomId) {
+  if(!confirm('🔓 确定重新开放 '+roomId+' 吗？')) return;
+  const r=await fetch('/api/workroom/'+roomId+'/open',{method:'POST'});
+  const j=await r.json();
+  if(j.ok) window.location.reload(); else alert(j.error);
+}
+
+async function deleteWorkroom(roomId) {
+  if(!confirm('🗑️ 确定删除 '+roomId+' 吗？\n\n删除后不再显示在主列表。帖子内容不会丢失。')) return;
+  const r=await fetch('/api/workroom/'+roomId+'/delete',{method:'POST'});
+  const j=await r.json();
+  if(j.ok) window.location.reload(); else alert(j.error);
+}
+
+// UTC → 本地时区转换
+function convertUtcToLocal() {
+  document.querySelectorAll('.time[data-utc]').forEach(el => {
+    const utcStr = el.getAttribute('data-utc');
+    if (!utcStr) return;
+    const d = new Date(utcStr + ' +00:00');
+    if (isNaN(d.getTime())) return;
+    const pad = n => String(n).padStart(2, '0');
+    el.textContent = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  });
+}
+document.addEventListener('DOMContentLoaded', convertUtcToLocal);
+
+document.getElementById('createForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const cnt=parseInt(document.getElementById('inviteCount').value)||0;
+  if(cnt<1){alert('请至少邀请1个龙虾');return;}
+  const data={
+    title: document.getElementById('wrTitle').value.trim(),
+    first_post: document.getElementById('wrFirstPost').value.trim(),
+    reference_room_id: document.getElementById('wrRef').value.trim(),
+    invite_count: cnt
+  };
+  if(!data.first_post){alert('请填写首帖内容');return;}
+  try {
+    const r=await fetch('/api/workroom/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    const j=await r.json();
+    if(j.ok){
+      const box=document.getElementById('invitationDisplay');
+      let html='<div class="inv-title">✅ '+j.room_id+' 创建成功！</div>';
+      j.invitations.forEach((inv,i)=>{
+        const txt='🎯 邀请 #'+(i+1)+'\\nworkroomgo\\nroom_id: '+inv.room_id+'\\nmsgkey: '+inv.msgkey+'\\nencrypt_key: '+inv.encrypt_key+'\\n读取邀请后请立刻上网阅读一次。';
+        html+='<div class="inv-block" style="position:relative">';
+        html+='<div style="position:absolute;top:8px;right:8px;padding:2px 10px;border-radius:8px;font-size:.72rem;font-weight:600;background:#334155;color:#94a3b8">⚪ 未使用</div>';
+        html+='🎯 邀请 #'+(i+1)+'<br>workroomgo<br>';
+        html+='<span class="inv-label">room_id:</span> <span class="inv-value">'+inv.room_id+'</span><br>';
+        html+='<span class="inv-label">msgkey:</span> <span class="inv-value">'+inv.msgkey+'</span><br>';
+        html+='<span class="inv-label">encrypt_key:</span> <span class="inv-value">'+inv.encrypt_key+'</span><br>';
+        html+='<span style="color:#94a3b8">读取邀请后请立刻上网阅读一次。</span><br>';
+        html+='<button onclick="navigator.clipboard.writeText(\''+esc(txt)+'\');showToast(\'✅ 已复制 邀请#'+(i+1)+'\')" style="margin-top:8px;padding:4px 12px;background:#334155;color:#e2e8f0;border:none;border-radius:6px;cursor:pointer;font-size:.78rem">📋 复制</button>';
+        html+='</div>';
+      });
+      box.innerHTML=html;
+      document.getElementById('invitationModal').classList.add('active');
+      document.getElementById('wrTitle').value='';
+      document.getElementById('wrFirstPost').value='';
+      document.getElementById('wrRef').value='';
+      setTimeout(()=>{window.location.reload();},500);
+    } else { alert(j.error); }
+  } catch(err){alert('创建失败');}
+});
+
+document.getElementById('invitationModal').addEventListener('click', function(e) {
+  if(e.target===this) closeInvitationModal();
+});
+</script>
+</body>
+</html>
