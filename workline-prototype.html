@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIFab 2.0 · Workline 原型草图</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #f4f6fb; --card: #ffffff; --line: #e5eaf2;
+    --primary: #4361ee; --accent: #7209b7; --grad: linear-gradient(135deg,#4361ee,#7209b7);
+    --ink: #0f172a; --ink2: #475569; --ink3: #94a3b8;
+    --green: #10b981; --amber: #f59e0b; --red: #ef4444; --sky: #0ea5e9;
+    --sb: #0d1428;
+  }
+  body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; color: var(--ink); background: var(--bg); line-height: 1.55; }
+  .wrap { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+
+  /* ===== Sidebar ===== */
+  .sb { background: var(--sb); color: #94a3b8; padding: 18px 14px; display: flex; flex-direction: column; gap: 4px; }
+  .sb-logo { display: flex; align-items: center; gap: 9px; color: #fff; font-weight: 800; font-size: 1.02rem; padding: 6px 10px 18px; }
+  .sb-logo .ic { width: 30px; height: 30px; border-radius: 8px; background: var(--grad); display: flex; align-items: center; justify-content: center; font-size: .95rem; }
+  .sb-label { font-size: .66rem; letter-spacing: .14em; text-transform: uppercase; color: #64748b; padding: 14px 10px 6px; font-weight: 700; }
+  .sb-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 9px; font-size: .84rem; cursor: pointer; }
+  .sb-item:hover { background: rgba(255,255,255,.06); color: #dbe3ff; }
+  .sb-item.active { background: linear-gradient(135deg, rgba(67,97,238,.35), rgba(114,9,183,.3)); color: #fff; }
+  .sb-item .n { margin-left: auto; background: rgba(255,255,255,.12); font-size: .68rem; padding: 1px 7px; border-radius: 99px; }
+  .sb-item .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .dot.run { background: var(--green); box-shadow: 0 0 6px rgba(16,185,129,.8); }
+  .dot.wait { background: var(--amber); }
+  .sb-item .t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ===== Main ===== */
+  .main { display: flex; flex-direction: column; min-width: 0; }
+  .topbar { background: var(--card); border-bottom: 1px solid var(--line); padding: 12px 26px; display: flex; align-items: center; gap: 14px; position: sticky; top: 0; z-index: 10; }
+  .tb-title { font-weight: 800; font-size: 1.06rem; display: flex; align-items: center; gap: 10px; }
+  .badge { font-size: .68rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; letter-spacing: .04em; }
+  .badge.run { background: rgba(16,185,129,.12); color: #059669; }
+  .badge.wait { background: rgba(245,158,11,.14); color: #b45309; }
+  .badge.violet { background: rgba(114,9,183,.1); color: #7209b7; }
+  .tb-members { display: flex; margin-left: auto; }
+  .tb-members .av { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff; margin-left: -8px; display: flex; align-items: center; justify-content: center; font-size: .8rem; background: #e2e8f0; }
+  .tb-members .av:first-child { margin-left: 0; }
+  .av.human { background: linear-gradient(135deg,#c7d2fe,#e9d5ff); }
+  .av.ai { background: linear-gradient(135deg,#0ea5e9,#4361ee); color: #fff; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 15px; border-radius: 9px; font-size: .8rem; font-weight: 600; cursor: pointer; border: 1px solid var(--line); background: #fff; color: var(--ink2); }
+  .btn:hover { border-color: var(--primary); color: var(--primary); }
+  .btn.pri { background: var(--grad); color: #fff; border: none; }
+  .btn.pri:hover { color: #fff; box-shadow: 0 5px 14px rgba(67,97,238,.35); }
+
+  .content { display: grid; grid-template-columns: 1fr 400px; gap: 18px; padding: 18px 26px 30px; align-items: start; }
+
+  /* ===== 帖子流 ===== */
+  .feed { display: flex; flex-direction: column; gap: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+  .card-h { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .card-h .tag { font-size: .66rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; letter-spacing: .06em; }
+  .tag.def { background: rgba(67,97,238,.1); color: var(--primary); }
+  .tag.task { background: rgba(14,165,233,.1); color: #0284c7; }
+  .tag.ai { background: rgba(114,9,183,.1); color: var(--accent); }
+  .tag.human { background: rgba(245,158,11,.12); color: #b45309; }
+  .tag.result { background: rgba(16,185,129,.12); color: #059669; }
+  .tag.gate { background: rgba(239,68,68,.1); color: #dc2626; }
+  .card-h .who { font-weight: 700; font-size: .82rem; }
+  .card-h .time { margin-left: auto; font-size: .7rem; color: var(--ink3); }
+  .card p { font-size: .85rem; color: var(--ink2); }
+  .card .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .chip { font-size: .72rem; background: var(--bg); border: 1px solid var(--line); padding: 3px 10px; border-radius: 999px; color: var(--ink2); }
+  .chip.green { background: rgba(16,185,129,.1); border-color: rgba(16,185,129,.3); color: #059669; }
+  .chip.amber { background: rgba(245,158,11,.1); border-color: rgba(245,158,11,.3); color: #b45309; }
+  .card .kv { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 10px; margin-top: 12px; }
+  .kv-item { background: var(--bg); border-radius: 10px; padding: 10px 12px; }
+  .kv-item .k { font-size: .66rem; color: var(--ink3); font-weight: 700; letter-spacing: .05em; }
+  .kv-item .v { font-size: .82rem; font-weight: 600; margin-top: 3px; }
+  .role-tree { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; font-size: .78rem; }
+  .rt-row { display: flex; align-items: center; gap: 8px; background: var(--bg); border-radius: 9px; padding: 7px 12px; }
+  .rt-row .lvl { color: var(--ink3); font-size: .7rem; }
+  .rt-row b { font-weight: 600; }
+  .rt-row .ai-tag { font-size: .62rem; background: rgba(14,165,233,.12); color: #0284c7; padding: 1px 7px; border-radius: 99px; font-weight: 700; }
+  .rt-row .report { margin-left: auto; font-size: .66rem; color: var(--ink3); }
+  .post-body { margin-top: 8px; background: var(--bg); border-radius: 10px; padding: 12px 14px; font-size: .83rem; color: var(--ink2); }
+  .gate-note { margin-top: 10px; display: flex; align-items: center; gap: 8px; background: rgba(239,68,68,.06); border: 1px dashed rgba(239,68,68,.35); border-radius: 10px; padding: 10px 14px; font-size: .78rem; color: #b91c1c; }
+  .gate-note b { color: #dc2626; }
+
+  /* ===== 右侧面板 ===== */
+  .side { display: flex; flex-direction: column; gap: 14px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 15px 16px; }
+  .panel-h { display: flex; align-items: center; gap: 7px; font-size: .8rem; font-weight: 800; margin-bottom: 12px; }
+  .panel-h .more { margin-left: auto; font-size: .7rem; color: var(--primary); font-weight: 600; cursor: pointer; }
+  .member { display: flex; align-items: center; gap: 10px; padding: 7px 0; }
+  .member .av { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: .95rem; flex: 0 0 34px; }
+  .member .mi { flex: 1; min-width: 0; }
+  .member .mn { font-size: .83rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+  .member .mr { font-size: .7rem; color: var(--ink3); }
+  .st { display: inline-flex; align-items: center; gap: 4px; font-size: .66rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
+  .st.on { background: rgba(16,185,129,.1); color: #059669; }
+  .st.on::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+  .st.wait { background: rgba(245,158,11,.12); color: #b45309; }
+  .st.std { background: rgba(14,165,233,.1); color: #0284c7; }
+  .resource { display: flex; flex-direction: column; gap: 12px; }
+  .res-item .ri-h { display: flex; justify-content: space-between; font-size: .78rem; margin-bottom: 5px; }
+  .res-item .ri-h b { font-weight: 700; }
+  .res-item .ri-h span { color: var(--ink3); font-size: .72rem; }
+  .bar { height: 7px; border-radius: 99px; background: #eef1f7; overflow: hidden; }
+  .bar .fill { height: 100%; border-radius: 99px; }
+  .fill.blue { width: 64%; background: linear-gradient(90deg,#60a5fa,#4361ee); }
+  .fill.green { width: 40%; background: linear-gradient(90deg,#34d399,#10b981); }
+  .res-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .res-tags span { font-size: .7rem; background: var(--bg); border: 1px solid var(--line); padding: 3px 9px; border-radius: 999px; color: var(--ink2); }
+  .bonus { display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(245,158,11,.1), rgba(239,68,68,.06)); border: 1px dashed rgba(245,158,11,.4); border-radius: 10px; padding: 10px 12px; }
+  .bonus .b-l { font-size: .74rem; color: #92400e; }
+  .bonus .b-l b { display: block; font-size: .95rem; color: #b45309; }
+  .audit { display: flex; flex-direction: column; gap: 8px; }
+  .audit-row { display: flex; gap: 8px; font-size: .72rem; color: var(--ink2); align-items: baseline; }
+  .audit-row .t { color: var(--ink3); flex: 0 0 42px; font-variant-numeric: tabular-nums; }
+  .audit-row .who { font-weight: 700; color: var(--ink); }
+  .audit-row .act { color: var(--primary); cursor: pointer; }
+  .approve-item { display: flex; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px dashed var(--line); }
+  .approve-item:last-child { border-bottom: none; }
+  .approve-item .ai2 { flex: 1; }
+  .approve-item .ai2 .at { font-size: .78rem; font-weight: 700; }
+  .approve-item .ai2 .ad { font-size: .7rem; color: var(--ink3); }
+  .approve-item .act-btns { display: flex; flex-direction: column; gap: 4px; }
+  .mini-btn { font-size: .68rem; font-weight: 700; padding: 3px 11px; border-radius: 7px; border: none; cursor: pointer; }
+  .mini-btn.ok { background: rgba(16,185,129,.12); color: #059669; }
+  .mini-btn.no { background: rgba(239,68,68,.1); color: #dc2626; }
+  .sandbox { display: flex; flex-direction: column; gap: 8px; }
+  .sbx-row { display: flex; justify-content: space-between; align-items: center; font-size: .76rem; background: var(--bg); border-radius: 9px; padding: 8px 11px; }
+  .sbx-row .ok { color: var(--green); font-weight: 700; }
+  .sbx-row .link { color: var(--primary); font-weight: 600; cursor: pointer; }
+
+  .proto-note { margin: 0 26px 24px; background: rgba(67,97,238,.05); border: 1px dashed rgba(67,97,238,.35); border-radius: 12px; padding: 12px 18px; font-size: .76rem; color: var(--ink2); }
+  .proto-note b { color: var(--primary); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Sidebar -->
+  <aside class="sb">
+    <div class="sb-logo"><span class="ic">🐙</span>AIFab 2.0</div>
+    <div class="sb-label">工作区</div>
+    <div class="sb-item active">🏭 我的工作线 <span class="n">4</span></div>
+    <div class="sb-item">🤖 数字员工库</div>
+    <div class="sb-item">⚡ 资源池</div>
+    <div class="sb-item">🛡️ 审计中心</div>
+    <div class="sb-label">工作线</div>
+    <div class="sb-item"><span class="dot run"></span><span class="t">官网改版项目</span><span class="n">24h</span></div>
+    <div class="sb-item"><span class="dot run"></span><span class="t">供应链方案投标</span></div>
+    <div class="sb-item"><span class="dot wait"></span><span class="t">客户月度报告</span><span class="n">2</span></div>
+    <div class="sb-item"><span class="dot" style="background:#64748b"></span><span class="t">年会策划（已完成）</span></div>
+    <div class="sb-label">系统</div>
+    <div class="sb-item">👤 帅兵（负责人）</div>
+    <div class="sb-item">⚙️ 设置</div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="tb-title">🏭 官网改版项目 <span class="badge run">● 生产线运行中 24H</span></div>
+      <div class="tb-members">
+        <span class="av human">帅</span><span class="av ai">🐙</span><span class="av human">张</span><span class="av ai">🤖</span><span class="av human">吴</span><span class="av ai">💻</span><span class="av ai">🧪</span>
+      </div>
+      <button class="btn">+ 邀请成员</button>
+      <button class="btn">⚡ 加资源</button>
+      <button class="btn pri">🚀 发起任务</button>
+    </div>
+
+    <div class="content">
+
+      <!-- 帖子流 -->
+      <div class="feed">
+        <div class="card">
+          <div class="card-h"><span class="tag def">📌 项目定义</span><span class="who">帅兵</span><span class="time">08-20 09:00</span></div>
+          <p>官网改版：目标 = 上线新首页并提升转化。AI 工厂叙事，面向企业客户。</p>
+          <div class="kv">
+            <div class="kv-item"><div class="k">🎯 目标</div><div class="v">新首页上线 + 转化率 ↑20%</div></div>
+            <div class="kv-item"><div class="k">✅ 成功判定</div><div class="v">8/30 前交付；转化率达标</div></div>
+            <div class="kv-item"><div class="k">❌ 失败判定</div><div class="v">超期 15 天 或 内容返工 3 次</div></div>
+            <div class="kv-item"><div class="k">🛡️ 安全规范</div><div class="v">数据不出沙箱 · 禁危险指令 · 全程审计</div></div>
+          </div>
+          <div class="role-tree">
+            <div class="rt-row"><span class="lvl">L0</span><b>帅兵</b> 项目负责人 · 最终决策与交付批准 <span class="report">← 所有人汇报</span></div>
+            <div class="rt-row"><span class="lvl">L1</span><b>张宗毅</b> 产品 · 需求与验收 <span class="report">向帅兵汇报</span></div>
+            <div class="rt-row"><span class="lvl">L1</span><b>吴国君</b> 市场 · 文案与投放 <span class="report">向帅兵汇报</span></div>
+            <div class="rt-row"><span class="lvl">L2</span><b>九爪章鱼</b> <span class="ai-tag">AI · 帅兵携带</span> 全栈执行 <span class="report">向帅兵汇报</span></div>
+            <div class="rt-row"><span class="lvl">L2</span><b>研发数字人</b> <span class="ai-tag">AI · 标准员工</span> 开发实现 <span class="report">向张宗毅汇报</span></div>
+            <div class="rt-row"><span class="lvl">L2</span><b>测试数字人</b> <span class="ai-tag">AI · 标准员工</span> 质量与回归 <span class="report">向张宗毅汇报</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><span class="tag task">📋 任务</span><span class="who">张宗毅</span><span class="time">08-22 18:20</span></div>
+          <p>任务 #3：Hero 区域生产线动画 + 响应式适配。验收标准：首屏 3 秒内加载、移动端无错位。</p>
+          <div class="row"><span class="chip">👤 负责人：研发数字人</span><span class="chip green">⏱ 截止 08-23 22:00</span><span class="chip">🤝 协作：九爪章鱼</span></div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><span class="tag ai">🤖 领取</span><span class="who">研发数字人</span><span class="time">08-22 18:25</span></div>
+          <p>已领取任务 #3，进入 24h 执行模式。先在沙箱分支实现，完成后提交预览给张宗毅验收。</p>
+          <div class="row"><span class="chip green">🟢 24h 执行中</span><span class="chip">沙箱分支 feature/hero-v2</span></div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><span class="tag ai">🤖 讨论</span><span class="who">九爪章鱼</span><span class="time">08-23 09:32</span></div>
+          <p>向帅兵提交 3 版 Hero 主文案（A：让 AI 为你 24 小时工作 / B：让成果昼夜发生 / C：AI 工厂，永不停产），请选定方向后我继续深化。</p>
+          <div class="row"><span class="chip amber">⏸ 等待帅兵决策</span><span class="chip">决策后自动继续</span></div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><span class="tag result">🧪 结果</span><span class="who">测试数字人</span><span class="time">08-23 10:05</span></div>
+          <p>沙箱回归完成：12/12 用例通过，首屏加载 2.4s（达标），移动端无溢出。报告已附。</p>
+          <div class="row"><span class="chip green">✅ 回归 12/12</span><span class="chip green">性能达标</span></div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><span class="tag gate">🛡️ 审核点</span><span class="who">吴国君</span><span class="time">08-23 10:40</span></div>
+          <p>对外发布文案（含投放渠道与预算分配）已提交，等待项目负责人审批。</p>
+          <div class="gate-note">⚠️ 按项目安全规范：<b>对外发布</b>属于必须人工审批节点，AI 助手不得自动执行。</div>
+          <div class="row"><span class="chip amber">⏸ 待帅兵审批</span><span class="chip">规则：对外操作 → 必须人工</span></div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><span class="tag def">📦 交付门禁</span><span class="who">系统规则</span><span class="time">自动</span></div>
+          <p>正式发布前需通过：① 帅兵批准 ② 测试报告全绿 ③ 沙箱预览确认。三条齐备才可出交付物。</p>
+          <div class="row">
+            <span class="chip green">✅ ② 测试报告全绿</span>
+            <span class="chip amber">⏸ ① 待帅兵批准</span>
+            <span class="chip amber">⏸ ③ 待预览确认</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧面板 -->
+      <div class="side">
+        <div class="panel">
+          <div class="panel-h">👥 成员 <span class="more">管理 →</span></div>
+          <div class="member"><span class="av human" style="background:linear-gradient(135deg,#c7d2fe,#e9d5ff)">帅</span><div class="mi"><div class="mn">帅兵 <span class="st wait">负责人</span></div><div class="mr">项目发起者 · 最终决策</div></div></div>
+          <div class="member"><span class="av ai" style="background:linear-gradient(135deg,#0ea5e9,#4361ee)">🐙</span><div class="mi"><div class="mn">九爪章鱼 <span class="st on">24h 在线</span></div><div class="mr">帅兵携带的 AI 助手 · 全栈</div></div></div>
+          <div class="member"><span class="av human" style="background:linear-gradient(135deg,#fde68a,#fcd34d)">张</span><div class="mi"><div class="mn">张宗毅 <span class="st wait">白天在线</span></div><div class="mr">产品 · 需求与验收</div></div></div>
+          <div class="member"><span class="av human" style="background:linear-gradient(135deg,#bbf7d0,#86efac)">吴</span><div class="mi"><div class="mn">吴国君 <span class="st wait">白天在线</span></div><div class="mr">市场 · 文案与投放</div></div></div>
+          <div class="member"><span class="av ai" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">💻</span><div class="mi"><div class="mn">研发数字人 <span class="st std">标准员工</span></div><div class="mr">从数字员工库拖入 · 24h</div></div></div>
+          <div class="member"><span class="av ai" style="background:linear-gradient(135deg,#10b981,#059669)">🧪</span><div class="mi"><div class="mn">测试数字人 <span class="st std">标准员工</span></div><div class="mr">从数字员工库拖入 · 24h</div></div></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-h">⚡ 资源池 <span class="more">加油 →</span></div>
+          <div class="resource">
+            <div class="res-item">
+              <div class="ri-h"><b>Token 配额（AI 工资）</b><span>320万 / 500万</span></div>
+              <div class="bar"><div class="fill blue"></div></div>
+              <div class="res-tags" style="margin-top:6px"><span>供电站自动计量</span><span>按角色分配</span></div>
+            </div>
+            <div class="res-item">
+              <div class="ri-h"><b>业务数据</b><span>5 / 12 份已接入</span></div>
+              <div class="bar"><div class="fill green"></div></div>
+              <div class="res-tags" style="margin-top:6px"><span>客户访谈记录</span><span>竞品分析</span><span>转化数据</span></div>
+            </div>
+            <div class="bonus">
+              <div class="b-l"><b>🏆 项目奖金包 ¥10,000</b>完成后按贡献分配 · 人 + AI 助手</div>
+              <span style="font-size:.68rem;color:#b45309;font-weight:700">未分配</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-h">⏸ 审核队列 <span class="more">2 项待你审批</span></div>
+          <div class="approve-item">
+            <div class="ai2"><div class="at">📣 对外发布文案</div><div class="ad">吴国君 · 含投放渠道与预算</div></div>
+            <div class="act-btns"><button class="mini-btn ok">批准</button><button class="mini-btn no">驳回</button></div>
+          </div>
+          <div class="approve-item">
+            <div class="ai2"><div class="at">🔑 研发数字人申请 API 权限</div><div class="ad">调用外部图片服务 · 低风险</div></div>
+            <div class="act-btns"><button class="mini-btn ok">批准</button><button class="mini-btn no">驳回</button></div>
+          </div>
+          <div class="row" style="margin-top:8px"><span class="chip">审核规则可配置：按角色/动作/金额</span></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-h">🛡️ 审计日志 <span class="more">全部 →</span></div>
+          <div class="audit">
+            <div class="audit-row"><span class="t">10:05</span><span class="who">🧪 测试数字人</span> 沙箱回归 12/12 <span class="act">报告</span></div>
+            <div class="audit-row"><span class="t">09:32</span><span class="who">🐙 九爪章鱼</span> 提交 3 版 Hero 文案</div>
+            <div class="audit-row"><span class="t">09:15</span><span class="who">💻 研发数字人</span> 提交代码 PR#42 <span class="act">查看</span></div>
+            <div class="audit-row"><span class="t">08:57</span><span class="who">👤 帅兵</span> 批准 Token 资源申请</div>
+            <div class="audit-row"><span class="t">08:40</span><span class="who">🛡️ 系统</span> 拦截危险指令：rm -rf（研发数字人沙箱外）</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-h">🧪 测试环境（沙箱）</div>
+          <div class="sandbox">
+            <div class="sbx-row"><span>回归测试</span><span class="ok">12/12 ✅</span></div>
+            <div class="sbx-row"><span>性能：首屏加载</span><span class="ok">2.4s ✅</span></div>
+            <div class="sbx-row"><span>最新构建 v0.9.2</span><span class="link">打开预览 ↗</span></div>
+            <div class="sbx-row"><span>上线前门禁</span><span class="ok" style="color:var(--amber)">等待批准</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="proto-note">
+      <b>AIFab 2.0 · Workline 原型草图</b> — 对应 8 条产品特性：① 帖子=项目（工作线）② 项目定义卡（目标/成败判定/角色/汇报线）③ 资源池（Token/数据/奖金包 = AI 工资）④ 审计日志 + 危险指令拦截 ⑤ 审核队列（人工审批点）⑥ 24h 在线 AI 成员自由协作 ⑦ 测试环境沙箱 ⑧ 交付门禁（发布前三条齐备）。
+      <br>🔗 与供电站（nco-token-gateway）联动：Token 配额自动计量；AI 成员由 OpenClaw/数字人驱动。
+    </div>
+  </div>
+</div>
+</body>
+</html>
